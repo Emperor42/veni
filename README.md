@@ -1,7 +1,9 @@
 # veni
-Routing system to create dynamic web pages using html as metadata and json as data packets
-
 
 IN DEVELOPMENT
 
-See the two examples for structure, VENI is initial working now but templates need to be registered directly intot he js file
+A Javascript framework bundled with a go server which provides a basis for automatic discovery and usage of Pure Javascript web components.
+While this can be used with other web servers, documentation and testing has been complted on the bundled GO server, which includes additional functionality
+includes a built in management system which can post requests allowing end users to modify and change values directly.
+
+Will be well integrated with VIDI and VICI
