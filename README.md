@@ -2,8 +2,6 @@
 
 IN DEVELOPMENT
 
-A Javascript framework bundled with a go server which provides a basis for automatic discovery and usage of Pure Javascript web components.
-While this can be used with other web servers, documentation and testing has been complted on the bundled GO server, which includes additional functionality
-includes a built in management system which can post requests allowing end users to modify and change values directly.
+Virtual ENdpoint Integration (VENI): Allow for Virtual Endpoints to be created which host standard HTML Web Components or javascript scripts allowsing for the creation of dymanic HTML-only websites 
 
 Will be well integrated with VIDI and VICI
