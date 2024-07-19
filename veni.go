@@ -2,18 +2,14 @@ package veni
 
 import(
 	"net/http"
-	//"os"
-	//"fmt"
-    //"log"
-    //"bufio"
+	"os"
+	"fmt"
+    "log"
+    "bufio"
+    "strings"
 )
 
-/*
-type HTMLDir struct {
-    d http.Dir
-}
-
-func (d HTMLDir) Open(name string) (http.File, error) {
+func (d *veniContext) Open(name string) (http.File, error) {
     fmt.Println(name)
     // Try name as supplied
     file, err := d.d.Open(name)
@@ -43,12 +39,89 @@ func (d HTMLDir) Open(name string) (http.File, error) {
         }
     }
     //we found a file
-    fmt.Println("File Found! -> Processing HTML")
-    //return processHTML(file), err
+    fmt.Println("File Found!")
     return file, err
 }
 
-func (d HTMLDir) processHTML(target http.File) http.File{
+func isVENI(str string)bool {
+    return strings.Contains(str, "<veni-")
+}
+
+func isStartTag(str string) bool {
+    return !strings.Contains(str, "/")
+}
+
+func isFinalTag(str string) bool {
+    return strings.Contains(str, "<html/>") || strings.Contains(str, "</html>")
+}
+
+func (d *veniContext) assignVeniComponent(targetLine string){
+    if targetLine!="" {
+        initialTargets := strings.Fields(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(targetLine,"/"," "),"<",""),">",""))
+        d.veniTargets = append(d.veniTargets, initialTargets[0])
+    }
+}
+
+func (d *veniContext) generateVeniComponent() error{
+    if d.veniTargets != nil {
+        //create an error buffer for failure case
+        errorBuffer := []string{"veni","vidi","vici"}
+        copy(errorBuffer, d.generatedFile)
+        //this means there are in fact targets present
+        d.generatedFile = append(d.generatedFile, "<script>")
+        for i, v := range d.veniTargets {
+            file, e := d.Open(v)
+            if e==nil {
+                fmt.Println(v)
+                fmt.Println(i)
+                //load the generated script into the section here
+                d.generatedFile = append(d.generatedFile, "customElements.define(")
+                d.generatedFile = append(d.generatedFile, "'"+v+"',")
+                d.generatedFile = append(d.generatedFile, "class extends HTMLElement {constructor() {super();template=document.createElement('template');template.innerHTML='")
+                //generated file output
+                e = d.scanFileBody(file)
+                if e != nil {
+                    d.generatedFile = errorBuffer
+                    return e
+                }
+                d.generatedFile = append(d.generatedFile, "';let templateContent = template.content;const shadowRoot = this.attachShadow({ mode: 'open' });shadowRoot.appendChild(templateContent.cloneNode(true));}},);\n")
+            } else {
+                fmt.Println(e)
+            }
+        }
+        d.generatedFile = append(d.generatedFile, "</script>")
+    }
+    return nil
+}
+
+func (d *veniContext) scanFileBody(target http.File)error{
+    var err error
+    defer target.Close()
+    fmt.Println("Attempt to process HTML")
+    scanner := bufio.NewScanner(target)
+
+    const maxCapacity int = 100000  // your required line length
+    buf := make([]byte, maxCapacity)
+    scanner.Buffer(buf, maxCapacity)
+    inBody := false
+
+    for scanner.Scan() {
+        textFound := scanner.Text()
+
+        if inBody {
+            d.generatedFile = append(d.generatedFile, textFound)
+        }
+    }
+
+    if err = scanner.Err(); err != nil {
+        log.Fatal(err)
+    }
+	return err
+}
+
+func (d *veniContext) processHTML(target http.File) error{
+    var err error
+    defer target.Close()
     fmt.Println("Attempt to process HTML")
     scanner := bufio.NewScanner(target)
 
@@ -59,30 +132,64 @@ func (d HTMLDir) processHTML(target http.File) http.File{
     for scanner.Scan() {
         textFound := scanner.Text()
         fmt.Println(textFound)
-        //d.generatedFile = append(d.generatedFile, textFound)
+        if isStartTag(textFound){
+            if isVENI(textFound) {
+                d.assignVeniComponent(textFound)
+            }
+        }
+        if isFinalTag(textFound) {
+            err = d.generateVeniComponent()
+        }
+        d.generatedFile = append(d.generatedFile, textFound)
     }
 
-    if err := scanner.Err(); err != nil {
+    if err = scanner.Err(); err != nil {
         log.Fatal(err)
     }
-	return target
+	return err
 }
-*/
 
 type veniContext struct {
     d http.Dir
     generatedFile []string
     err error
+    veniTargets []string
 }
 
-func (d veniContext) generateHTMLHandler(w http.ResponseWriter, r *http.Request){
-    
+func (d *veniContext) ServeHTTP(w http.ResponseWriter, r *http.Request){
+    fmt.Printf("Req: %s %s\n", r.Host, r.URL.Path) 
+    name := r.URL.Path
+    file, err := d.Open(name)
+    if err != nil {
+        fmt.Println("Issue opening file, please review")
+        log.Fatal(err)
+    }
+    err = d.processHTML(file)
+    if err != nil {
+        fmt.Println("Issue reading file, please review")
+        log.Fatal(err)
+    }
+    //close my file
+    fmt.Println("File processed!")
+    //write line by line to resp
+    charCount := 0
+    for i, v := range d.generatedFile {
+        value := []byte(v+"\n")
+        tmpCount, erWrite := w.Write(value)
+        charCount += tmpCount
+        if erWrite!= nil {
+            fmt.Printf("Issue writing please review at line: %n\n",i)
+            log.Fatal(erWrite)
+        } else {
+            fmt.Printf("Wrote line: %n\n",i)
+        }
+    }
 }
 
 func Load(fs http.FileSystem) http.Handler{
-    context := veniContext{fs, nil, nil}
-    if context.err!=true {
+    context := &veniContext{fs.(http.Dir), nil, nil, nil}
+    if context.err!=nil {
         return http.FileServer(fs)
     }
-    return context.generateHTMLHandler
+    return context
 }
