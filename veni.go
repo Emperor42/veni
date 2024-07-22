@@ -173,6 +173,7 @@ func (d *veniContext) ServeHTTP(w http.ResponseWriter, r *http.Request){
     fmt.Println("File processed!")
     //write line by line to resp
     charCount := 0
+    w.Header().Set("Content-Type", "text/html")
     for i, v := range d.generatedFile {
         value := []byte(v+"\n")
         tmpCount, erWrite := w.Write(value)
