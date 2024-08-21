@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-// BELOW IS LEGACY CODE, not leveraged at the moment by the new system
-
 func (d *veniContext) Open(name string) (http.File, error) {
 	fmt.Println(name)
 	// Try name as supplied
@@ -159,6 +157,7 @@ type veniContext struct {
 }
 
 func (d *veniContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	d.generatedFile = []string{}
 	fmt.Printf("Req: %s %s\n", r.Host, r.URL.Path)
 	name := r.URL.Path
 	file, err := d.Open(name)
@@ -175,14 +174,7 @@ func (d *veniContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("File processed!")
 	//write line by line to resp
 	charCount := 0
-	//reset the buffer by flushing
-	rc := http.NewResponseController(w)
-	fmt.Fprintf(w, "sending first line of data")
-	if err := rc.Flush(); err != nil {
-		// Handle error in some way.
-		log.Println("Oops, no flush")
-	}
-	fmt.Fprintf(w, "sending second line of data")
+	d.generatedFile = []string{}
 	w.Header().Set("Content-Type", "text/html")
 	for i, v := range d.generatedFile {
 		value := []byte(v + "\n")
