@@ -13,7 +13,7 @@ func (v *VeniContext) ProcessHeader() {
 	fmt.Println("temp")
 }
 
-func (v *VeniContext) Handler(w http.ResponseWriter, r *http.Request) {
+func (v *VeniContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/call" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return

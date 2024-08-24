@@ -1,3 +1,3 @@
-module azzurro.tech/veni
+module veni
 
 go 1.23.0
