@@ -1,6 +1,9 @@
 package veni
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 type VeniContext struct {
 	systemTest string
@@ -8,4 +11,18 @@ type VeniContext struct {
 
 func (v *VeniContext) ProcessHeader() {
 	fmt.Println("temp")
+}
+
+func (v *VeniContext) Handler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/call" {
+		http.Error(w, "404 not found.", http.StatusNotFound)
+		return
+	}
+
+	if r.Method != "GET" {
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		return
+	}
+
+	fmt.Fprintf(w, "Call Complete!")
 }
