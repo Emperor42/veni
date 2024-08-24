@@ -14,7 +14,7 @@ func (v *VeniContext) ProcessHeader() {
 }
 
 func (v *VeniContext) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/call" {
+	if r.URL.RequestURI() != "/call" {
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
