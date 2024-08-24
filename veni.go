@@ -6,7 +6,7 @@ import (
 )
 
 type VeniContext struct {
-	systemTest string
+	Name string
 }
 
 func (v *VeniContext) ProcessHeader() {
